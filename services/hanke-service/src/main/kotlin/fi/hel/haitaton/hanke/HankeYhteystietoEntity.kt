@@ -1,7 +1,9 @@
 package fi.hel.haitaton.hanke
 
 import com.fasterxml.jackson.annotation.JsonView
+import com.vladmihalcea.hibernate.type.json.JsonType
 import java.time.LocalDateTime
+import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.EnumType
 import javax.persistence.Enumerated
@@ -12,11 +14,14 @@ import javax.persistence.Id
 import javax.persistence.JoinColumn
 import javax.persistence.ManyToOne
 import javax.persistence.Table
+import org.hibernate.annotations.Type
+import org.hibernate.annotations.TypeDef
 
 enum class ContactType {
-    OMISTAJA, // owner
-    ARVIOIJA, // planner or person to do the planning of hanke
-    TOTEUTTAJA // implementor or builder
+    OMISTAJA,
+    RAKENNUTTAJA,
+    TOTEUTTAJA,
+    MUU,
 }
 
 @Entity
@@ -25,13 +30,13 @@ class HankeYhteystietoEntity(
     @JsonView(ChangeLogView::class) @Enumerated(EnumType.STRING) var contactType: ContactType,
 
     // must have contact information
-    @JsonView(ChangeLogView::class) var sukunimi: String,
-    @JsonView(ChangeLogView::class) var etunimi: String,
+    @JsonView(ChangeLogView::class) var nimi: String,
     @JsonView(ChangeLogView::class) var email: String,
     @JsonView(ChangeLogView::class) var puhelinnumero: String,
     @JsonView(ChangeLogView::class) var organisaatioId: Int? = 0,
     @JsonView(ChangeLogView::class) var organisaatioNimi: String? = null,
     @JsonView(ChangeLogView::class) var osasto: String? = null,
+    @JsonView(ChangeLogView::class) var rooli: String? = null,
 
     // Personal data processing restriction (or other needs to prevent changes)
     @JsonView(NotInChangeLogView::class) var dataLocked: Boolean? = false,
@@ -54,7 +59,10 @@ class HankeYhteystietoEntity(
     @JsonView(NotInChangeLogView::class)
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "hankeid")
-    var hanke: HankeEntity? = null
+    var hanke: HankeEntity? = null,
+    @Type(type = "json")
+    @Column(columnDefinition = "jsonb")
+    var alikontaktit: List<Alikontakti> = listOf(),
 ) {
 
     // Must consider both id and all non-audit fields for correct operations in certain collections
@@ -67,13 +75,13 @@ class HankeYhteystietoEntity(
         if (id == other.id) return true
 
         if (contactType != other.contactType) return false
-        if (sukunimi != other.sukunimi) return false
-        if (etunimi != other.etunimi) return false
+        if (nimi != other.nimi) return false
         if (email != other.email) return false
         if (puhelinnumero != other.puhelinnumero) return false
         if (organisaatioId != other.organisaatioId) return false
         if (organisaatioNimi != other.organisaatioNimi) return false
         if (osasto != other.osasto) return false
+        if (alikontaktit != other.alikontaktit) return false
 
         return true
     }
@@ -81,13 +89,13 @@ class HankeYhteystietoEntity(
     override fun hashCode(): Int {
         var result = id ?: 0
         result = 31 * result + contactType.hashCode()
-        result = 31 * result + sukunimi.hashCode()
-        result = 31 * result + etunimi.hashCode()
+        result = 31 * result + nimi.hashCode()
         result = 31 * result + email.hashCode()
         result = 31 * result + puhelinnumero.hashCode()
         result = 31 * result + (organisaatioId ?: 0)
         result = 31 * result + (organisaatioNimi?.hashCode() ?: 0)
         result = 31 * result + (osasto?.hashCode() ?: 0)
+        result = 31 * result + alikontaktit.hashCode()
         return result
     }
 
@@ -98,12 +106,20 @@ class HankeYhteystietoEntity(
     fun cloneWithMainFields(): HankeYhteystietoEntity =
         HankeYhteystietoEntity(
             contactType,
-            sukunimi,
-            etunimi,
+            nimi,
             email,
             puhelinnumero,
             organisaatioId,
             organisaatioNimi,
-            osasto
+            osasto,
+            rooli
         )
 }
+
+@TypeDef(name = "json", typeClass = JsonType::class)
+data class Alikontakti(
+    val etunimi: String?,
+    val sukunimi: String?,
+    val email: String,
+    val puhelinnumero: String?
+)

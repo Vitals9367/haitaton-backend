@@ -250,17 +250,18 @@ class HankeControllerTest {
         hanke.omistajat =
             arrayListOf(
                 HankeYhteystieto(
-                    null,
-                    "Pekkanen",
-                    "Pekka",
-                    "pekka@pekka.fi",
-                    "3212312",
-                    null,
-                    "Kaivuri ja mies",
-                    null,
-                    null,
-                    null,
-                    null
+                    id = null,
+                    nimi = "Pekka Pekkanen",
+                    email = "pekka@pekka.fi",
+                    puhelinnumero = "3212312",
+                    organisaatioId = null,
+                    organisaatioNimi = "Kaivuri ja mies",
+                    osasto = null,
+                    rooli = null,
+                    alikontaktit =
+                        listOf(
+                            Alikontakti("Ali", "Kontakti", "ali.kontakti@meili.com", "050-3789354")
+                        ),
                 )
             )
 
@@ -283,7 +284,7 @@ class HankeControllerTest {
         assertThat(response.omistajat).isNotNull
         assertThat(response.omistajat).hasSize(1)
         assertThat(response.omistajat[0].id).isEqualTo(1)
-        assertThat(response.omistajat[0].sukunimi).isEqualTo("Pekkanen")
+        assertThat(response.omistajat[0].nimi).isEqualTo("Pekka Pekkanen")
         verify { disclosureLogService.saveDisclosureLogsForHanke(any(), eq(username)) }
     }
 

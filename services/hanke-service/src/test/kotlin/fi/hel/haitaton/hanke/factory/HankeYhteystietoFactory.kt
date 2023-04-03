@@ -1,5 +1,6 @@
 package fi.hel.haitaton.hanke.factory
 
+import fi.hel.haitaton.hanke.Alikontakti
 import fi.hel.haitaton.hanke.domain.HankeYhteystieto
 import fi.hel.haitaton.hanke.getCurrentTimeUTC
 
@@ -9,8 +10,7 @@ object HankeYhteystietoFactory {
     fun create(id: Int? = 1, organisaatioId: Int? = 1): HankeYhteystieto {
         return HankeYhteystieto(
             id = id,
-            sukunimi = "Testihenkilö",
-            etunimi = "Teppo",
+            nimi = "Teppo Testihenkilö",
             email = "teppo@example.test",
             puhelinnumero = "04012345678",
             organisaatioId = organisaatioId,
@@ -19,7 +19,10 @@ object HankeYhteystietoFactory {
             createdBy = "test7358",
             createdAt = getCurrentTimeUTC(),
             modifiedBy = "test7358",
-            modifiedAt = getCurrentTimeUTC()
+            modifiedAt = getCurrentTimeUTC(),
+            rooli = "Isännöitsijä",
+            alikontaktit =
+                listOf(Alikontakti("Ali", "Kontakti", "ali.kontakti@meili.com", "050-4567890"))
         )
     }
 
@@ -30,13 +33,23 @@ object HankeYhteystietoFactory {
     fun createDifferentiated(intValue: Int): HankeYhteystieto {
         return HankeYhteystieto(
             id = null,
-            sukunimi = "suku$intValue",
-            etunimi = "etu$intValue",
+            nimi = "etu$intValue suku$intValue",
             email = "email$intValue",
             puhelinnumero = "010$intValue$intValue$intValue$intValue$intValue$intValue$intValue",
             organisaatioId = intValue,
             organisaatioNimi = "org$intValue",
-            osasto = "osasto$intValue"
+            osasto = "osasto$intValue",
+            rooli = "Isännöitsijä$intValue",
+            alikontaktit =
+                listOf(
+                    Alikontakti(
+                        sukunimi = "suku$intValue",
+                        etunimi = "etu$intValue",
+                        email = "email$intValue",
+                        puhelinnumero =
+                            "010$intValue$intValue$intValue$intValue$intValue$intValue$intValue",
+                    )
+                )
         )
     }
 

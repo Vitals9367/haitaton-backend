@@ -1,5 +1,9 @@
 package fi.hel.haitaton.hanke
 
+import fi.hel.haitaton.hanke.ContactType.MUU
+import fi.hel.haitaton.hanke.ContactType.OMISTAJA
+import fi.hel.haitaton.hanke.ContactType.RAKENNUTTAJA
+import fi.hel.haitaton.hanke.ContactType.TOTEUTTAJA
 import fi.hel.haitaton.hanke.application.Application
 import fi.hel.haitaton.hanke.application.ApplicationService
 import fi.hel.haitaton.hanke.application.CableReportWithoutHanke
@@ -372,9 +376,10 @@ open class HankeServiceImpl(
                 createHankeYhteystietoDomainObjectFromEntity(hankeYhteystietoEntity)
 
             when (hankeYhteystietoEntity.contactType) {
-                ContactType.OMISTAJA -> hanke.omistajat.add(hankeYhteystieto)
-                ContactType.TOTEUTTAJA -> hanke.toteuttajat.add(hankeYhteystieto)
-                ContactType.ARVIOIJA -> hanke.arvioijat.add(hankeYhteystieto)
+                OMISTAJA -> hanke.omistajat.add(hankeYhteystieto)
+                TOTEUTTAJA -> hanke.toteuttajat.add(hankeYhteystieto)
+                RAKENNUTTAJA -> hanke.rakennuttajat.add(hankeYhteystieto)
+                MUU -> hanke.muut.add(hankeYhteystieto)
             }
         }
     }
@@ -393,8 +398,7 @@ open class HankeServiceImpl(
 
         return HankeYhteystieto(
             id = hankeYhteystietoEntity.id,
-            etunimi = hankeYhteystietoEntity.etunimi,
-            sukunimi = hankeYhteystietoEntity.sukunimi,
+            nimi = hankeYhteystietoEntity.nimi,
             email = hankeYhteystietoEntity.email,
             puhelinnumero = hankeYhteystietoEntity.puhelinnumero,
             organisaatioId = hankeYhteystietoEntity.organisaatioId,
@@ -404,6 +408,8 @@ open class HankeServiceImpl(
             modifiedBy = hankeYhteystietoEntity.modifiedByUserId,
             createdAt = createdAt,
             modifiedAt = modifiedAt,
+            alikontaktit = hankeYhteystietoEntity.alikontaktit,
+            rooli = hankeYhteystietoEntity.rooli,
         )
     }
 
@@ -454,7 +460,12 @@ open class HankeServiceImpl(
         // A temporary copy, so that we can remove handled entries from it, leaving
         // certain deleted entries as remainder:
         val tempLockedExistingYts = lockedExistingYTs.toMutableMap()
-        listOf(incomingHanke.omistajat, incomingHanke.arvioijat, incomingHanke.toteuttajat)
+        listOf(
+                incomingHanke.omistajat,
+                incomingHanke.rakennuttajat,
+                incomingHanke.toteuttajat,
+                incomingHanke.muut
+            )
             .forEach { yhteystiedot ->
                 findAndLogAffectedBlockedYhteystietos(
                     yhteystiedot,
@@ -521,8 +532,7 @@ open class HankeServiceImpl(
                 } else if (!areEqualIncomingVsExistingYhteystietos(yhteystieto, lockedExistingYt)) {
                     // copy the values to temporary non-persisted entity for logging:
                     val unsavedNewData = lockedExistingYt.cloneWithMainFields()
-                    unsavedNewData.sukunimi = yhteystieto.sukunimi
-                    unsavedNewData.etunimi = yhteystieto.etunimi
+                    unsavedNewData.nimi = yhteystieto.nimi
                     unsavedNewData.email = yhteystieto.email
                     unsavedNewData.puhelinnumero = yhteystieto.puhelinnumero
                     unsavedNewData.organisaatioId = yhteystieto.organisaatioId
@@ -651,9 +661,10 @@ open class HankeServiceImpl(
         // Check each incoming yhteystieto (from three lists) for being new or an update to existing
         // one, and add to the main entity's single list if necessary:
         listOf(
-                ContactType.OMISTAJA to hanke.omistajat,
-                ContactType.ARVIOIJA to hanke.arvioijat,
-                ContactType.TOTEUTTAJA to hanke.toteuttajat,
+                OMISTAJA to hanke.omistajat,
+                RAKENNUTTAJA to hanke.rakennuttajat,
+                TOTEUTTAJA to hanke.toteuttajat,
+                MUU to hanke.muut
             )
             .forEach { (type, yhteystiedot) ->
                 processIncomingHankeYhteystietosOfSpecificTypeToEntity(
@@ -760,13 +771,13 @@ open class HankeServiceImpl(
             val hankeYhtEntity =
                 HankeYhteystietoEntity(
                     contactType = contactType,
-                    sukunimi = hankeYht.sukunimi,
-                    etunimi = hankeYht.etunimi,
+                    nimi = hankeYht.nimi,
                     email = hankeYht.email,
                     puhelinnumero = hankeYht.puhelinnumero,
                     organisaatioId = hankeYht.organisaatioId,
                     organisaatioNimi = hankeYht.organisaatioNimi,
                     osasto = hankeYht.osasto,
+                    rooli = hankeYht.rooli,
                     dataLocked = false,
                     dataLockInfo = null,
                     createdByUserId = userid,
@@ -774,6 +785,7 @@ open class HankeServiceImpl(
                     modifiedByUserId = null,
                     modifiedAt = null,
                     id = null, // will be set by the database
+                    alikontaktit = hankeYht.alikontaktit,
                     hanke = hankeEntity // reference back to parent hanke
                 )
             hankeEntity.addYhteystieto(hankeYhtEntity)
@@ -816,11 +828,11 @@ open class HankeServiceImpl(
                 previousEntityData.id = existingYT.id
 
                 // Update values in the persisted entity:
-                existingYT.sukunimi = hankeYht.sukunimi
-                existingYT.etunimi = hankeYht.etunimi
+                existingYT.nimi = hankeYht.nimi
                 existingYT.email = hankeYht.email
                 existingYT.puhelinnumero = hankeYht.puhelinnumero
                 existingYT.organisaatioId = hankeYht.organisaatioId
+                existingYT.alikontaktit = hankeYht.alikontaktit
                 hankeYht.organisaatioNimi?.let {
                     existingYT.organisaatioNimi = hankeYht.organisaatioNimi
                 }
@@ -866,13 +878,13 @@ open class HankeServiceImpl(
         incoming: HankeYhteystieto,
         existing: HankeYhteystietoEntity
     ): Boolean {
-        if (incoming.etunimi != existing.etunimi) return false
-        if (incoming.sukunimi != existing.sukunimi) return false
+        if (incoming.nimi != existing.nimi) return false
         if (incoming.email != existing.email) return false
         if (incoming.puhelinnumero != existing.puhelinnumero) return false
         if (incoming.organisaatioId != existing.organisaatioId) return false
         if (incoming.organisaatioNimi != existing.organisaatioNimi) return false
         if (incoming.osasto != existing.osasto) return false
+        if (incoming.alikontaktit != existing.alikontaktit) return false
         return true
     }
 
