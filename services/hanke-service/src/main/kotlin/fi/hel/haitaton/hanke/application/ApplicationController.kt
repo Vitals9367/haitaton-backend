@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import java.nio.file.Files
 import mu.KotlinLogging
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -24,6 +25,7 @@ import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.MediaType.APPLICATION_PDF
 import org.springframework.http.MediaType.APPLICATION_PDF_VALUE
 import org.springframework.http.ResponseEntity
+import org.springframework.util.StreamUtils
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 private val logger = KotlinLogging.logger {}
 
@@ -269,13 +272,17 @@ class ApplicationController(
                 ),
             ]
     )
-    fun downloadDecision(@PathVariable(name = "id") id: Long): ResponseEntity<ByteArray> {
+    fun downloadDecisionStreaming(
+        @PathVariable(name = "id") id: Long
+    ): ResponseEntity<StreamingResponseBody> {
         checkHakemusPermission(id, VIEW)
-        val (filename, pdfBytes) = service.downloadDecision(id, currentUserId())
-
+        val (filename, tmpPath) = service.downloadDecision(id, currentUserId())
         val headers = HttpHeaders()
         headers.add("Content-Disposition", "inline; filename=$filename.pdf")
-        return ResponseEntity.ok().headers(headers).contentType(APPLICATION_PDF).body(pdfBytes)
+        val response = StreamingResponseBody { out ->
+            StreamUtils.copy(Files.newInputStream(tmpPath), out)
+        }
+        return ResponseEntity.ok().headers(headers).contentType(APPLICATION_PDF).body(response)
     }
 
     fun checkHakemusPermission(hakemusId: Long, permissionCode: PermissionCode) {

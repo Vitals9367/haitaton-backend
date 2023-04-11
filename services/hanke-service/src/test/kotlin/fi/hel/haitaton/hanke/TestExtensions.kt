@@ -5,6 +5,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import fi.hel.haitaton.hanke.logging.AuditLogRepository
 import fi.hel.haitaton.hanke.logging.ObjectType
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import org.springframework.test.web.servlet.ResultActions
@@ -22,6 +24,8 @@ inline fun <reified T> ResultActions.andReturnBody(): T =
 fun String.getResourceAsText(): String = this.getResource().readText(Charsets.UTF_8)
 
 fun String.getResourceAsBytes(): ByteArray = this.getResource().readBytes()
+
+fun String.getResourceAsPath(): Path = Paths.get(this.getResource().toURI())
 
 private fun String.getResource() =
     // The class here is arbitrary, could be any class. Using ClassLoader might be cleaner, but it

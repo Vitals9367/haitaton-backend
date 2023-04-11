@@ -12,6 +12,7 @@ import fi.hel.haitaton.hanke.factory.AlluDataFactory
 import fi.hel.haitaton.hanke.factory.AlluDataFactory.Companion.withContacts
 import fi.hel.haitaton.hanke.factory.HankeFactory
 import fi.hel.haitaton.hanke.getResourceAsBytes
+import fi.hel.haitaton.hanke.getResourceAsPath
 import fi.hel.haitaton.hanke.permissions.PermissionCode.EDIT_APPLICATIONS
 import fi.hel.haitaton.hanke.permissions.PermissionCode.VIEW
 import fi.hel.haitaton.hanke.permissions.PermissionService
@@ -603,9 +604,10 @@ class ApplicationControllerITest(@Autowired override val mockMvc: MockMvc) : Con
         every { permissionService.hasPermission(42, USERNAME, VIEW) } returns true
         every { applicationService.getApplicationById(11) } returns
             AlluDataFactory.createApplication(id = 11, hankeTunnus = HANKE_TUNNUS)
+        val pdfPath = "/fi/hel/haitaton/hanke/decision/fake-decision.pdf".getResourceAsPath()
         val pdfBytes = "/fi/hel/haitaton/hanke/decision/fake-decision.pdf".getResourceAsBytes()
         every { applicationService.downloadDecision(11, USERNAME) } returns
-            Pair("JS230001", pdfBytes)
+            Pair("JS230001", pdfPath)
 
         get("$BASE_URL/11/paatos", APPLICATION_PDF, APPLICATION_JSON)
             .andExpect(status().isOk)

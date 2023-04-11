@@ -52,8 +52,10 @@ import io.mockk.every
 import io.mockk.justRun
 import io.mockk.verify
 import io.mockk.verifyOrder
+import java.nio.file.Path
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
+import kotlin.io.path.writeBytes
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -1187,14 +1189,14 @@ class ApplicationServiceITest : DatabaseTest() {
         val hanke = createHankeEntity()
         val application =
             alluDataFactory.saveApplicationEntity(USERNAME, hanke = hanke) { it.alluid = 134 }
-        every { cableReportServiceAllu.getDecisionPdf(134) }
+        every { cableReportServiceAllu.getDecisionPdfToFile(134, any()) }
             .throws(ApplicationDecisionNotFoundException(""))
 
         assertThrows<ApplicationDecisionNotFoundException> {
             applicationService.downloadDecision(application.id!!, USERNAME)
         }
 
-        verify { cableReportServiceAllu.getDecisionPdf(134) }
+        verify { cableReportServiceAllu.getDecisionPdfToFile(134, any()) }
     }
 
     @Test
@@ -1206,13 +1208,17 @@ class ApplicationServiceITest : DatabaseTest() {
                 it.alluid = 134
                 it.applicationIdentifier = "JS230001"
             }
-        every { cableReportServiceAllu.getDecisionPdf(134) }.returns(pdfBytes)
+        every { cableReportServiceAllu.getDecisionPdfToFile(134, any()) }
+            .answers {
+                val tmpPath = secondArg<Path>()
+                tmpPath.writeBytes(pdfBytes)
+            }
 
-        val (filename, bytes) = applicationService.downloadDecision(application.id!!, USERNAME)
+        val (filename, tmpPath) = applicationService.downloadDecision(application.id!!, USERNAME)
 
         assertThat(filename).isNotNull().isEqualTo("JS230001")
-        assertThat(bytes).isEqualTo(pdfBytes)
-        verify { cableReportServiceAllu.getDecisionPdf(134) }
+        assertThat(tmpPath.toFile().readBytes()).isEqualTo(pdfBytes)
+        verify { cableReportServiceAllu.getDecisionPdfToFile(134, any()) }
     }
 
     @Test
@@ -1224,13 +1230,17 @@ class ApplicationServiceITest : DatabaseTest() {
                 it.alluid = 134
                 it.applicationIdentifier = null
             }
-        every { cableReportServiceAllu.getDecisionPdf(134) }.returns(pdfBytes)
+        every { cableReportServiceAllu.getDecisionPdfToFile(134, any()) }
+            .answers {
+                val tmpPath = secondArg<Path>()
+                tmpPath.writeBytes(pdfBytes)
+            }
 
-        val (filename, bytes) = applicationService.downloadDecision(application.id!!, USERNAME)
+        val (filename, tmpPath) = applicationService.downloadDecision(application.id!!, USERNAME)
 
         assertThat(filename).isNotNull().isEqualTo("paatos")
-        assertThat(bytes).isEqualTo(pdfBytes)
-        verify { cableReportServiceAllu.getDecisionPdf(134) }
+        assertThat(tmpPath.toFile().readBytes()).isEqualTo(pdfBytes)
+        verify { cableReportServiceAllu.getDecisionPdfToFile(134, any()) }
     }
 
     // TODO: Needs Spring 5.3, which comes with Spring Boot 2.4.

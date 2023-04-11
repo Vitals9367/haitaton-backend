@@ -1,9 +1,13 @@
 package fi.hel.haitaton.hanke.allu
 
 import fi.hel.haitaton.hanke.application.ApplicationDecisionNotFoundException
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.ZonedDateTime
 import mu.KotlinLogging
 import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.MediaType
 import org.springframework.http.client.MultipartBodyBuilder
 import org.springframework.web.reactive.function.BodyInserters
@@ -209,10 +213,18 @@ class CableReportServiceAllu(
             .orElseThrow()
     }
 
-    override fun getDecisionPdf(applicationId: Int): ByteArray {
+    /**
+     * Download the PDF to a temporary file. Downloading to a file allows downloading bigger files
+     * than storing them in memory. The file is streamed to the file, so that only a small portion
+     * is in memory at the same time.
+     *
+     * Web client can only store about 250kB files in memory by default. This could be increased,
+     * but it would still be a hard upper limit.
+     */
+    override fun getDecisionPdfToFile(applicationId: Int, tmpFile: Path) {
         val token = login()!!
         val requestUri = "$baseUrl/v2/cablereports/$applicationId/decision"
-        val response =
+        val flux =
             webClient
                 .get()
                 .uri(requestUri)
@@ -229,22 +241,13 @@ class CableReportServiceAllu(
                         )
                     }
                 )
-                .toEntity(ByteArrayResource::class.java)
-                .doOnError(WebClientResponseException::class.java) {
-                    logError("Error getting decision PDF from Allu", it)
-                }
-                .blockOptional()
-                .orElseThrow()
+                .bodyToFlux(DataBuffer::class.java)
 
-        if (response.headers.contentType != MediaType.APPLICATION_PDF) {
-            throw AlluApiException(
-                requestUri,
-                "Decision API didn't return a PDF. RequestContent-Type header: ${response.headers.contentType}"
-            )
+        DataBufferUtils.write(flux, tmpFile).block()
+        val byteCount = Files.size(tmpFile)
+        if (byteCount == 0L) {
+            throw AlluApiException(requestUri, "Decision API returned empty body")
         }
-        val body =
-            response.body ?: throw AlluApiException(requestUri, "Decision API returned empty body")
-        return body.byteArray
     }
 
     override fun getDecisionAttachments(applicationId: Int): List<AttachmentMetadata> {

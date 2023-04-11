@@ -1,5 +1,6 @@
 package fi.hel.haitaton.hanke.allu
 
+import java.nio.file.Path
 import java.time.ZonedDateTime
 
 interface CableReportService {
@@ -22,7 +23,7 @@ interface CableReportService {
         updatedFields: List<InformationRequestFieldKey>
     )
 
-    fun getDecisionPdf(applicationId: Int): ByteArray
+    fun getDecisionPdfToFile(applicationId: Int, tmpFile: Path)
     fun getDecisionAttachments(applicationId: Int): List<AttachmentMetadata>
     fun getDecisionAttachmentData(applicationId: Int, attachmentId: Int): ByteArray
     fun getApplicationInformation(applicationId: Int): AlluApplicationResponse

@@ -19,8 +19,10 @@ import fi.hel.haitaton.hanke.permissions.HankeKayttajaService
 import fi.hel.haitaton.hanke.permissions.PermissionCode
 import fi.hel.haitaton.hanke.permissions.PermissionService
 import fi.hel.haitaton.hanke.toJsonString
+import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
+import kotlin.io.path.createTempFile
 import kotlin.reflect.KClass
 import mu.KotlinLogging
 import org.springframework.http.MediaType
@@ -237,7 +239,7 @@ open class ApplicationService(
         applicationLoggingService.logDelete(application.toApplication(), userId)
     }
 
-    open fun downloadDecision(applicationId: Long, userId: String): Pair<String, ByteArray> {
+    open fun downloadDecision(applicationId: Long, userId: String): Pair<String, Path> {
         val application = getApplicationById(applicationId)
         val alluid =
             application.alluid
@@ -245,8 +247,10 @@ open class ApplicationService(
                     "Application not in Allu, so it doesn't have a decision. id=${application.id}"
                 )
         val filename = application.applicationIdentifier ?: "paatos"
-        val pdfBytes = cableReportService.getDecisionPdf(alluid)
-        return Pair(filename, pdfBytes)
+        val path: Path = createTempFile("", ".pdf")
+        cableReportService.getDecisionPdfToFile(alluid, path)
+
+        return Pair(filename, path)
     }
 
     /**
