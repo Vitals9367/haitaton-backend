@@ -62,17 +62,18 @@ class ApplicationAttachmentService(
         attachmentType: ApplicationAttachmentType,
         attachment: MultipartFile
     ): ApplicationAttachmentMetadata {
+        val filename = AttachmentValidator.validFilename(attachment.originalFilename)
         val application =
             findApplication(applicationId).also { application ->
                 ensureApplicationIsPending(application)
                 ensureRoomForAttachment(applicationId)
-                ensureValidFile(attachment)
+                scanAttachment(filename, attachment.bytes)
             }
 
         val entity =
             ApplicationAttachmentEntity(
                 id = null,
-                fileName = attachment.originalFilename!!,
+                fileName = filename,
                 contentType = attachment.contentType!!,
                 createdByUserId = currentUserId(),
                 createdAt = now(),
@@ -135,14 +136,12 @@ class ApplicationAttachmentService(
             ApplicationNotFoundException(applicationId)
         }
 
-    private fun ensureValidFile(attachment: MultipartFile) =
-        with(attachment) {
-            AttachmentValidator.validate(this)
-            val scanResult = scanClient.scan(listOf(FileScanInput(originalFilename!!, bytes)))
-            if (scanResult.hasInfected()) {
-                throw AttachmentInvalidException("Infected file detected, see previous logs.")
-            }
+    private fun scanAttachment(filename: String, content: ByteArray) {
+        val scanResult = scanClient.scan(listOf(FileScanInput(filename, content)))
+        if (scanResult.hasInfected()) {
+            throw AttachmentInvalidException("Infected file detected, see previous logs.")
         }
+    }
 
     private fun ensureApplicationIsPending(application: ApplicationEntity) {
         if (!isPending(application.alluid, application.alluStatus)) {

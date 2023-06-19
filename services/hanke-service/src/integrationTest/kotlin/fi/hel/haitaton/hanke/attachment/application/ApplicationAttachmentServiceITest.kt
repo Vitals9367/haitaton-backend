@@ -1,6 +1,7 @@
 package fi.hel.haitaton.hanke.attachment.application
 
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.each
 import assertk.assertions.endsWith
 import assertk.assertions.hasSize
@@ -29,8 +30,10 @@ import fi.hel.haitaton.hanke.attachment.common.ApplicationAttachmentType
 import fi.hel.haitaton.hanke.attachment.common.ApplicationAttachmentType.LIIKENNEJARJESTELY
 import fi.hel.haitaton.hanke.attachment.common.ApplicationAttachmentType.MUU
 import fi.hel.haitaton.hanke.attachment.common.ApplicationAttachmentType.VALTAKIRJA
+import fi.hel.haitaton.hanke.attachment.common.AttachmentContentService
 import fi.hel.haitaton.hanke.attachment.common.AttachmentInvalidException
 import fi.hel.haitaton.hanke.attachment.common.AttachmentNotFoundException
+import fi.hel.haitaton.hanke.attachment.defaultData
 import fi.hel.haitaton.hanke.attachment.failResult
 import fi.hel.haitaton.hanke.attachment.response
 import fi.hel.haitaton.hanke.attachment.successResult
@@ -72,6 +75,7 @@ private const val ALLU_ID = 42
 class ApplicationAttachmentServiceITest : DatabaseTest() {
     @MockkBean private lateinit var cableReportService: CableReportService
     @Autowired private lateinit var applicationAttachmentService: ApplicationAttachmentService
+    @Autowired private lateinit var attachmentContentService: AttachmentContentService
     @Autowired private lateinit var applicationAttachmentRepository: ApplicationAttachmentRepository
     @Autowired private lateinit var alluDataFactory: AlluDataFactory
     @Autowired private lateinit var attachmentFactory: AttachmentFactory
@@ -134,7 +138,7 @@ class ApplicationAttachmentServiceITest : DatabaseTest() {
         val result =
             applicationAttachmentService.getContent(
                 applicationId = application.id!!,
-                attachmentId = attachment.id!!
+                attachmentId = attachment.id
             )
 
         assertThat(result.fileName).isEqualTo(FILE_NAME_PDF)
@@ -164,7 +168,7 @@ class ApplicationAttachmentServiceITest : DatabaseTest() {
             assertThrows<AttachmentNotFoundException> {
                 applicationAttachmentService.getContent(
                     applicationId = firstApplication.id!!,
-                    attachmentId = secondAttachment.id!!,
+                    attachmentId = secondAttachment.id,
                 )
             }
 
@@ -190,7 +194,38 @@ class ApplicationAttachmentServiceITest : DatabaseTest() {
         assertThat(result.createdAt).isRecent()
         assertThat(result.applicationId).isEqualTo(application.id)
         assertThat(result.attachmentType).isEqualTo(typeInput)
+
+        val attachments = applicationAttachmentRepository.findAll()
+        assertThat(attachments).hasSize(1)
+        val attachmentInDb = attachments.first()
+        assertThat(attachmentInDb.id).isEqualTo(result.id)
+        assertThat(attachmentInDb.createdByUserId).isEqualTo(USERNAME)
+        assertThat(attachmentInDb.fileName).isEqualTo(FILE_NAME_PDF)
+        assertThat(attachmentInDb.createdAt).isRecent()
+        assertThat(attachmentInDb.applicationId).isEqualTo(application.id)
+        assertThat(attachmentInDb.attachmentType).isEqualTo(typeInput)
+
+        val content = attachmentContentService.findApplicationContent(result.id)
+        assertThat(content).containsExactly(*defaultData)
+
         verify { cableReportService wasNot Called }
+    }
+
+    @Test
+    fun `addAttachment with special characters in filename sanitizes filename`() {
+        mockWebServer.enqueue(response(body(results = successResult())))
+        val application = initApplication().toApplication()
+
+        val result =
+            applicationAttachmentService.addAttachment(
+                applicationId = application.id!!,
+                attachmentType = MUU,
+                attachment = testFile(fileName = "exa*mple.pdf"),
+            )
+
+        assertThat(result.fileName).isEqualTo("exa_mple.pdf")
+        val attachmentInDb = applicationAttachmentRepository.getReferenceById(result.id)
+        assertThat(attachmentInDb.fileName).isEqualTo("exa_mple.pdf")
     }
 
     @Test
@@ -330,14 +365,14 @@ class ApplicationAttachmentServiceITest : DatabaseTest() {
                 attachmentType = VALTAKIRJA,
                 attachment = testFile()
             )
-        assertThat(applicationAttachmentRepository.findById(attachment.id!!)).isPresent()
+        assertThat(applicationAttachmentRepository.findById(attachment.id)).isPresent()
 
         applicationAttachmentService.deleteAttachment(
             applicationId = application.id!!,
-            attachmentId = attachment.id!!
+            attachmentId = attachment.id
         )
 
-        assertThat(applicationAttachmentRepository.findById(attachment.id!!)).isEmpty()
+        assertThat(applicationAttachmentRepository.findById(attachment.id)).isEmpty()
     }
 
     @Test
