@@ -161,7 +161,7 @@ class AlluDataFactory(
             pendingOnClient: Boolean = false,
             workDescription: String = "Work description.",
             customerWithContacts: CustomerWithContacts =
-                createCompanyCustomer().withContacts(createContact()),
+                createCompanyCustomer().withContacts(createContact(orderer = true)),
             contractorWithContacts: CustomerWithContacts =
                 createCompanyCustomer().withContacts(createContact()),
             representativeWithContacts: CustomerWithContacts? = null,
