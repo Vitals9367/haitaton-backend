@@ -58,7 +58,7 @@ object AttachmentValidator {
         val sanitizedFilename = sanitizeFilename(originalFilename)
         logger.info { "Sanitized file name to $sanitizedFilename" }
 
-        if (!validateFileName(sanitizedFilename)) {
+        if (!isValidFilename(sanitizedFilename)) {
             throw AttachmentInvalidException("File '$sanitizedFilename' not supported")
         }
         return sanitizedFilename!!
@@ -67,7 +67,7 @@ object AttachmentValidator {
     private fun sanitizeFilename(filename: String?): String? =
         filename?.replace(INVALID_CHARS_PATTERN, "_")
 
-    private fun validateFileName(filename: String?): Boolean =
+    private fun isValidFilename(filename: String?): Boolean =
         when {
             filename.isNullOrBlank() -> fail("Attachment file name null or blank")
             filename.length > 128 -> fail("File name is too long")
