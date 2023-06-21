@@ -2,14 +2,11 @@ package fi.hel.haitaton.hanke.email
 
 import fi.hel.haitaton.hanke.getResource
 import javax.mail.internet.MimeMessage
-import kotlin.system.exitProcess
 import mu.KotlinLogging
 import net.pwall.mustache.Template
-import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConstructorBinding
 import org.springframework.boot.convert.Delimiter
-import org.springframework.context.event.EventListener
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Service
@@ -34,12 +31,6 @@ class EmailSenderService(
     private val mailSender: JavaMailSender,
     private val emailConfig: EmailProperties,
 ) {
-
-    @EventListener(ApplicationReadyEvent::class)
-    fun sendTestMail() {
-        sendJohtoselvitysCompleteEmail("haitaton@test.com", 91, "JS2300005")
-        exitProcess(0)
-    }
 
     fun sendJohtoselvitysCompleteEmail(
         to: String,
