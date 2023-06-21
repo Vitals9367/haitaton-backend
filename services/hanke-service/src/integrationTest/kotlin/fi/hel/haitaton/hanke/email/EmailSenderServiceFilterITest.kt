@@ -38,8 +38,8 @@ class EmailSenderServiceFilterITest : DatabaseTest() {
     @Autowired lateinit var emailSenderService: EmailSenderService
 
     @Test
-    fun `sendJohtoselvitysCompleteEmail sends email with correct recipient`() {
-        emailSenderService.sendJohtoselvitysCompleteEmail("test@test.test", 13L, "JS2300001")
+    fun `sendJohtoselvitysCompleteEmail sends email with allowed recipient`() {
+        emailSenderService.sendJohtoselvitysCompleteEmail("test@test.test", 15L, "JS2300001")
 
         val email = greenMail.firstReceivedMessage()
         assertThat(email.allRecipients).hasSize(1)
