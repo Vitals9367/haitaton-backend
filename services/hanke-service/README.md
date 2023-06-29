@@ -28,10 +28,23 @@ Starting the application/services can be done afterwards with command line at ha
 $ ./gradlew :services:hanke-service:bootRun
 ```
 
-After the application has started, the services should be available at URLs (see Swagger UI (below) 
+After the application has started, the services should be available at URLs (see Swagger UI (below)
 for full API description) (and other sub-URLs similarly):
 > http://localhost:8080/hankkeet/<id> \
 > http://localhost:8080/hankkeet/<id>/geometriat
+
+### Code coverage report
+
+Gradle Jacoco plugin is used to create a code coverage report.
+```
+$ ./gradlew :services:hanke-service:test :services:hanke-service:integrationTest :services:hanke-service:jacocoTestReport
+```
+Created report can be found at paths:
+
+| 	Format | Path	                                           |
+|---------|-------------------------------------------------|
+| 	 Html  | 	build/reports/jacoco/test/html/index.html      |
+| 	 Xml   | 	build/reports/jacoco/test/jacocoTestReport.xml |
 
 ### Git hooks
 
