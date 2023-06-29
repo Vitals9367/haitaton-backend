@@ -64,6 +64,7 @@ plugins {
 	idea
 	id("com.github.ben-manes.versions") version "0.42.0"
 	id("jacoco")
+	id("org.sonarqube") version "4.2.1.3168"
 }
 
 dependencies {
@@ -120,7 +121,7 @@ dependencies {
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 }
 
-jacoco { toolVersion = "0.8.10" }
+jacoco { toolVersion = "0.8.7" }
 
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
