@@ -64,7 +64,6 @@ plugins {
 	idea
 	id("com.github.ben-manes.versions") version "0.42.0"
 	id("jacoco")
-	id("org.sonarqube") version "4.2.1.3168"
 }
 
 dependencies {
@@ -121,7 +120,7 @@ dependencies {
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 }
 
-jacoco { toolVersion = "0.8.7" }
+jacoco { toolVersion = "0.8.10" }
 
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
@@ -162,10 +161,13 @@ tasks {
 	}
 
 	jacocoTestReport {
+		reports {
+			xml.required.set(true)
+		}
 		executionData.setFrom(
             fileTree(buildDir).include("/jacoco/test.exec", "/jacoco/integrationTest.exec")
         )
-        dependsOn("integrationTest")
+		dependsOn("test", "integrationTest")
 	}
 }
 
